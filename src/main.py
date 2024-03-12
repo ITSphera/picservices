@@ -24,7 +24,9 @@ async def root():
 
 @app.post("/upload")
 async def upload_image(
-    file: UploadFile = File(...), service: str = SERVICES, target_type: str = str
+    file: UploadFile = File(...),
+    service: str = SERVICES,
+    target_type: str = str,
 ) -> dict:
     """
     Upload image to the server

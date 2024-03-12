@@ -46,4 +46,4 @@ def image_handler(file: bytes, directory: str, image_width: int) -> Path:
 if __name__ == "__main__":
     image = bytes(open(input("Image path: "), "rb").read())
     width = 1000
-    image_handler(image, width)
+    image_handler(image, "test", width)
