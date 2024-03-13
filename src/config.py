@@ -1,8 +1,20 @@
+from datetime import timedelta
+
 from celery import Celery
 from decouple import config
 from fastapi import FastAPI
+from redis import Redis
 from starlette.staticfiles import StaticFiles
 
+from src.images.middlewares.limit_requests import LimitRequestsMiddleware
+
+# Redis settings
+REDIS_HOST = config("REDIS_HOST", default="localhost")
+REDIS_PORT = config("REDIS_PORT", default=6379, cast=int)
+REDIS_DB = config("REDIS_DB", default=0, cast=int)
+REDIS_SERVER = Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+
+# Celery settings
 celery = Celery(
     "tasks",
     backend=config("REDIS_URL", default="redis://localhost:6379/0"),
@@ -22,10 +34,11 @@ celery.conf.update(
     broker_connection_retry_on_startup=True,
 )
 
+# FastAPI
 app = FastAPI()
 app.mount("/media", StaticFiles(directory="src/media"), name="media")
 
-
+# Image settings
 SERVICES = {
     "SVZ": {
         "avatar": {
@@ -38,5 +51,21 @@ SERVICES = {
         },
     },
 }
+IMAGE_QUALITY = config("IMAGE_QUALITY", default=100, cast=int)
 
 BASE_URL = config("BASE_URL", default="http://localhost:8000")
+
+# Limit requests for API
+MAX_REQUESTS = config("MAX_REQUESTS", default=5, cast=int)
+TIME_WINDOW = timedelta(seconds=config("TIME_WINDOW", default=3, cast=int))
+IP_BLACKLIST_DURATION = timedelta(
+    minutes=config("IP_BLACKLIST_DURATION", default=60 * 24, cast=int)
+)
+
+app.add_middleware(
+    LimitRequestsMiddleware,
+    redis_server=REDIS_SERVER,
+    max_requests=MAX_REQUESTS,
+    time_window=TIME_WINDOW,
+    blacklist_duration=IP_BLACKLIST_DURATION,
+)

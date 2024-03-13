@@ -1,8 +1,10 @@
-from uuid import uuid4
 from io import BytesIO
 from pathlib import Path
+from uuid import uuid4
 
 from PIL import Image
+
+from src.config import IMAGE_QUALITY
 
 
 def image_handler(file: bytes, directory: str, image_width: int) -> Path:
@@ -37,7 +39,7 @@ def image_handler(file: bytes, directory: str, image_width: int) -> Path:
     output_path = output_dir / file_name
 
     # Save image with default quality settings for better performance
-    image.save(output_path, "WEBP", quality=100)
+    image.save(output_path, "WEBP", quality=IMAGE_QUALITY)
 
     # Return file path
     return output_path
