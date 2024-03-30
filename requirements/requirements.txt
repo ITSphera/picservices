@@ -9,4 +9,5 @@ python-decouple==3.8
 python-multipart==0.0.9
 ruff==0.3.0
 redis==5.0.2
+trio==0.25.0
 uvicorn==0.27.1

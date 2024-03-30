@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from PIL import Image
 
-from src.config import IMAGE_QUALITY
+from src.config import IMAGE_QUALITY, MAX_IMAGE_HEIGHT
 
 
 def image_handler(file: bytes, directory: str, image_width: int) -> Path:
@@ -29,6 +29,11 @@ def image_handler(file: bytes, directory: str, image_width: int) -> Path:
 
     # Resize image
     image = image.resize((image_width, new_height), resample=Image.LANCZOS)
+    image_height = image.height
+
+    # crop image if height > 1080 crop the picture from the centre
+    if image_height > MAX_IMAGE_HEIGHT:
+        image = image.crop((0, 0, image_width, MAX_IMAGE_HEIGHT))
 
     # Generate unique file name
     file_name = f"PIL-{uuid4()}.webp"

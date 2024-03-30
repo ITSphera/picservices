@@ -44,6 +44,7 @@ SERVICES = {
     },
 }
 IMAGE_QUALITY = config("IMAGE_QUALITY", default=100, cast=int)
+MAX_IMAGE_HEIGHT = config("MAX_IMAGE_HEIGHT", default=1080, cast=int)
 
 BASE_URL = config("BASE_URL", default="http://localhost:8000")
 

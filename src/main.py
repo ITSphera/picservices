@@ -10,9 +10,15 @@ from src.config import (
 )
 from src.images.middlewares.limit_requests import LimitRequestsMiddleware
 
-app = FastAPI()
+app = FastAPI(title="Image Processing API", version="1.0.0")
+
+# Include routers
 app.include_router(images_router, prefix="/images")
+
+# Mount media files
 app.mount("/media", StaticFiles(directory="src/media"), name="media")
+
+# Add middleware
 app.add_middleware(
     LimitRequestsMiddleware,
     redis_server=REDIS_SERVER,
