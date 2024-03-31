@@ -1,5 +1,6 @@
 from datetime import timedelta
 from typing import Any
+from fastapi import status
 
 from fastapi import Request, FastAPI
 from redis import Redis
@@ -36,13 +37,19 @@ class LimitRequestsMiddleware(BaseHTTPMiddleware):
         client_ip: str = request.client.host
 
         if await self.is_blacklisted(client_ip):
-            return JSONResponse(status_code=429, content="Too many requests")
+            return JSONResponse(
+                status_code=status.HTTP_429_TO_MANY_REQUESTS,
+                content="Too many requests",
+            )
 
         request_count: int = await self.get_request_count(client_ip)
 
         if request_count >= self.max_requests:
             await self.add_to_blacklist(client_ip)
-            return JSONResponse(status_code=429, content="Too many requests")
+            return JSONResponse(
+                status_code=status.HTTP_429_TO_MANY_REQUESTS,
+                content="Too many requests",
+            )
 
         await self.increment_request_count(client_ip)
 
