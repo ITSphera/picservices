@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 from src.images.router import router as images_router
 
@@ -9,6 +10,10 @@ from src.config import (
     IP_BLACKLIST_DURATION,
 )
 from src.images.middlewares.limit_requests import LimitRequestsMiddleware
+
+ORIGIN = [
+    "*",
+]
 
 app = FastAPI(title="Image Processing API", version="1.0.0")
 
@@ -25,6 +30,13 @@ app.add_middleware(
     max_requests=MAX_REQUESTS,
     time_window=TIME_WINDOW,
     blacklist_duration=IP_BLACKLIST_DURATION,
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ORIGIN,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

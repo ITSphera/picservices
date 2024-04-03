@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сервис обработки изображений</title>
+    <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a href="/" class="logo">
+                <img src="static/logo.png" alt="Логотип" width="35">
+            </a>
+            <h1>Сервис обработки изображений</h1>
+            <a href="https://github.com/vbamnup" class="author">Автор</a>
+        </div>
+    </header>
+    <main>
+        <h2>Загрузка изображения</h2>
+        <div class="form-container">
+        <form id="form" class="form">
+            <div class="form-group">
+                <h3>Сервис:</h3>
+                <label>
+                    <input type="radio" name="service" value="SVZ" checked>
+                    SVZ
+                </label>
+                <label>
+                    <input type="radio" name="service" value="VDV">
+                    VDV
+                </label>
+            </div>
+            <div class="form-group">
+                <h3>Тип изображения:</h3>
+                <label>
+                    <input type="radio" name="target_type" value="avatar" checked>
+                    Аватар
+                </label>
+                <label>
+                    <input type="radio" name="target_type" value="recipe">
+                    Рецепт
+                </label>
+            </div>
+            <div class="form-group">
+                <label for="image-upload">Загрузить изображение:</label>
+                <input type="file" name="image" id="image-upload">
+            </div>
+            <button type="submit" class="submit-button">Отправить</button>
+        </form>
+        </div>
+    </main>
+</body>
+<script>
+    const form = document.getElementById('form');
+
+form.addEventListener('submit', (event) => {
+    event.preventDefault(); // Не отправлять форму обычным способом
+
+    // Получить выбранные значения
+    const service = document.querySelector('input[name="service"]:checked').value;
+    const targetType = document.querySelector('input[name="target_type"]:checked').value;
+
+    // Сформировать URL-адрес для запроса
+    const url = `http://127.0.0.1:8000/images/upload?service=${service}&target_type=${targetType}`;
+
+    // Создать новый объект FormData
+    const formData = new FormData();
+    formData.append('file', document.getElementById('image-upload').files[0]);
+
+    // Отправить данные на сервер с помощью fetch
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            // 'Content-Type': 'multipart/form-data' // Этот заголовок устанавливать не нужно, так как браузер автоматически установит правильный тип содержимого с границей.
+        },
+        body: formData, // Данные формы
+    })
+    .then(response => response.json()) // Преобразовать ответ в JSON
+    .then(data => {
+        if (data.task_id) {
+            checkTaskStatus(data.task_id); // Начать проверку статуса задачи
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка:', error); // Вывести ошибку в консоль
+    });
+});
+
+
+// Функция для проверки статуса задачи
+function checkTaskStatus(taskId) {
+    return fetch(`http://127.0.0.1:8000/images/status/${taskId}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            if (data.status === 'SUCCESS') {
+                // Задача выполнена, получить и показать изображение
+                showImageInContainer(data.result);
+            } else {
+                // Задача еще не выполнена, повторить проверку через некоторое время
+                setTimeout(() => checkTaskStatus(taskId), 3000); // Проверять каждые 2 секунды
+            }
+        })
+        .catch(error => console.error('Ошибка:', error));
+}
+
+// Функция для отображения изображения
+function showImageInContainer(imageUrl) {
+    const img_container = document.createElement('div');
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    const container = document.querySelector('.form');
+    img_container.classList.add('image-container');
+    img_container.appendChild(img);
+    container.appendChild(img_container);
+}
+
+</script>
+</html>
