@@ -1,20 +1,18 @@
 import asyncio
-from pathlib import Path
-from celery.result import AsyncResult
-from typing import Any, Union
-from PIL import Image
 from io import BytesIO
+from pathlib import Path
+from typing import Any, Union
 
-from fastapi import File, UploadFile, Depends
-
+from PIL import Image
+from celery.result import AsyncResult
 from fastapi import APIRouter
+from fastapi import File, UploadFile, Depends
 from starlette.responses import JSONResponse
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 
-from .models import UploadData
-from src.tasks import process_image
 from src.config import SERVICES, celery, BASE_URL
-
+from src.tasks import process_image
+from .models import UploadData
 
 router = APIRouter()
 
@@ -52,7 +50,6 @@ async def upload_image(
     width: int = SERVICES[service][target_type]["width"]
 
     try:
-        # Проверить что файл является изображением
         with Image.open(BytesIO(file)) as _:
             task: asyncio.Task = process_image.delay(file, target_dir, width)
     except Exception:
