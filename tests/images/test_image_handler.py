@@ -1,5 +1,3 @@
-import shutil
-
 import pytest
 from PIL import Image, UnidentifiedImageError
 
@@ -22,8 +20,6 @@ def test_image_handler(image):
     assert image.width == width
     assert image.height == 500
     assert image.format == "WEBP"
-
-    shutil.rmtree("src/media/test")
 
 
 def test_not_image_handler(not_image):
@@ -55,5 +51,3 @@ def test_image_height_more_than_1080(image_height_more_than_1080):
     assert image.width == width
     assert image.height == 1080
     assert image.format == "WEBP"
-
-    shutil.rmtree("src/media/test")
