@@ -42,6 +42,12 @@ SERVICES = {
             "width": config("SVZ_RECIPE_WIDTH", default=768, cast=int),
         },
     },
+    "test": {
+        "test": {
+            "dir": "test",
+            "width": config("SVZ_AVATAR_WIDTH", default=200, cast=int),
+        },
+    },
 }
 IMAGE_QUALITY = config("IMAGE_QUALITY", default=100, cast=int)
 MAX_IMAGE_HEIGHT = config("MAX_IMAGE_HEIGHT", default=1080, cast=int)
