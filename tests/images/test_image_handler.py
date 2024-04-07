@@ -9,6 +9,10 @@ from src.images.image_handler import image_handler
 
 @pytest.fixture(scope="session")
 def image():
+    """
+    Create test image
+    :return:
+    """
     image = Image.new("RGB", (100, 50))
     image.save("test.png")
     image = bytes(open("test.png", "rb").read())
@@ -18,6 +22,10 @@ def image():
 
 @pytest.fixture(scope="session")
 def not_image():
+    """
+    Create not image
+    :return:
+    """
     with open("test.txt", "w+") as my_file:
         my_file.write("Привет, файл!")
     not_image = bytes(open("test.txt", "rb").read())
@@ -27,6 +35,10 @@ def not_image():
 
 @pytest.fixture(scope="session")
 def image_height_more_than_1080():
+    """
+    Create test image with height more than 1080
+    :return:
+    """
     image = Image.new("RGB", (100, 2000))
     image.save("test2000.png")
     image = bytes(open("test2000.png", "rb").read())
