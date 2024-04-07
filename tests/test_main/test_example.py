@@ -1,11 +1,14 @@
 import pytest
-from httpx import AsyncClient
-from src.main import app
 
 
-@pytest.mark.anyio
-async def test_root():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.get("/")
-    assert response.status_code == 200
-    assert response.json() == {"message": "Hello World"}
+@pytest.mark.asyncio
+class TestExample:
+    """
+    Test example
+    """
+
+    async def test_example(self, async_client):
+        response = await async_client.get("/")
+        assert response.status_code == 200
+        assert response.json() == {"message": "Hello World"}
+        assert response.headers["Content-Type"] == "application/json"
