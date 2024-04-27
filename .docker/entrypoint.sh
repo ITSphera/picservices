@@ -3,9 +3,6 @@
 set -x
 echo "Starting Image Service ..."
 
-echo "Starting Redis"
-redis-server --daemonize yes
-
 echo "Starting Celery"
 celery -A src.tasks worker --loglevel=info &
 
