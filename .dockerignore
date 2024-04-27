@@ -1,0 +1,9 @@
+.templates/
+.tests/
+.pytest_cache/
+.ruff_cache/
+.gitignore
+.pre-commit-config.yaml
+pytest.ini
+README.md
+LICENSE
