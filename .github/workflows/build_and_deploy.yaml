@@ -38,6 +38,11 @@ jobs:
         run: |
           export PYTHONPATH=$PYTHONPATH:./src
           celery -A src.tasks worker --loglevel=info &
+        env:
+          REDIS_HOST: redis
+          REDIS_PORT: 6379
+          REDIS_DB: 0
+          REDIS_URL: redis://redis:6379/0
 
       - name: Run pytest
         run: |
