@@ -42,7 +42,7 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           REDIS_DB: 0
-          REDIS_URL: redis://localhost:6379/?db=0
+          REDIS_URL: redis://localhost:6379/0
           CELERY_RESULT_EXPIRES: 3600
           SVZ_AVATAR_WIDTH: 200
           SVZ_RECIPE_WIDTH: 768
@@ -62,7 +62,7 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           REDIS_DB: 0
-          REDIS_URL: redis://localhost:6379/?db=0
+          REDIS_URL: redis://localhost:6379/0
           CELERY_RESULT_EXPIRES: 3600
           SVZ_AVATAR_WIDTH: 200
           SVZ_RECIPE_WIDTH: 768
