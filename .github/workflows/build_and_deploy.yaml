@@ -44,6 +44,14 @@ jobs:
           REDIS_DB: 0
           REDIS_URL: redis://localhost:6379/0
           CELERY_RESULT_EXPIRES: 3600
+          SVZ_AVATAR_WIDTH: 200
+          SVZ_RECIPE_WIDTH: 768
+          BASE_URL: http://127.0.0.1:8000
+          MAX_REQUESTS: 10
+          TIME_WINDOW: 10
+          IP_BLACKLIST_DURATION: 1
+          IMAGE_QUALITY: 100
+          MAX_IMAGE_HEIGHT: 1080
 
       - name: Run pytest
         run: |
@@ -55,3 +63,12 @@ jobs:
           REDIS_PORT: 6379
           REDIS_DB: 0
           REDIS_URL: redis://localhost:6379/0
+          CELERY_RESULT_EXPIRES: 3600
+          SVZ_AVATAR_WIDTH: 200
+          SVZ_RECIPE_WIDTH: 768
+          BASE_URL: http://127.0.0.1:8000
+          MAX_REQUESTS: 10
+          TIME_WINDOW: 10
+          IP_BLACKLIST_DURATION: 1
+          IMAGE_QUALITY: 100
+          MAX_IMAGE_HEIGHT: 1080
