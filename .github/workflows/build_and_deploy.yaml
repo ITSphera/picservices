@@ -39,7 +39,7 @@ jobs:
           export PYTHONPATH=$PYTHONPATH:./src
           celery -A src.tasks worker --loglevel=info &
         env:
-          REDIS_HOST: redis
+          REDIS_HOST: localhost
           REDIS_PORT: 6379
           REDIS_DB: 0
           REDIS_URL: redis://localhost:6379/?db=0
@@ -59,7 +59,7 @@ jobs:
           mkdir -p src/media/test
           pytest
         env:
-          REDIS_HOST: redis
+          REDIS_HOST: localhost
           REDIS_PORT: 6379
           REDIS_DB: 0
           REDIS_URL: redis://localhost:6379/?db=0
