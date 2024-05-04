@@ -1,15 +1,11 @@
 name: deploy picservice workflow
 
-
 on:
   pull_request:
-    branches: [ "develop" ]
-    types:
-      - closed
+    branches: ["develop"]
+    types: [closed]
 
 jobs:
-
-
   tests:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
@@ -21,12 +17,11 @@ jobs:
         ports:
           - 6379:6379
 
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: set up python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -39,11 +34,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements/requirements.txt
 
-      - name: Run celery
+      - name: Start Celery worker in background
         run: |
           export PYTHONPATH=$PYTHONPATH:./src
-          celery -A src.tasks worker --loglevel=info
-          
+          celery -A src.tasks worker --loglevel=info &
 
       - name: Run pytest
         run: |
