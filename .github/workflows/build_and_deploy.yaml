@@ -41,6 +41,7 @@ jobs:
       - name: Run pytest
         run: |
           export PYTHONPATH=$PYTHONPATH:./src
+          mkdir -p src/media/test
           pytest
         env:
           REDIS_HOST: redis
