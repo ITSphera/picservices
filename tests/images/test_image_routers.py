@@ -58,7 +58,7 @@ async def test_upload_image_with_wrong_target_type(async_client, image):
 
     file = {"file": image}
     upload_data = {
-        "service": "test",
+        "service": "SVZ",
         "target_type": "wrong_target_type",
     }
     response = await async_client.post(
