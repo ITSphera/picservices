@@ -9,6 +9,10 @@ from httpx import AsyncClient
 from main import app
 
 
+# create media dir before tests
+Path("src/media/test").mkdir(parents=True, exist_ok=True)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def clean_test_catalog():
     """
