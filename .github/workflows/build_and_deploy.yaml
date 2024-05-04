@@ -42,7 +42,8 @@ jobs:
           REDIS_HOST: redis
           REDIS_PORT: 6379
           REDIS_DB: 0
-          REDIS_URL: redis://redis:6379/0
+          REDIS_URL: redis://localhost:6379/0
+          CELERY_RESULT_EXPIRES: 3600
 
       - name: Run pytest
         run: |
@@ -53,4 +54,4 @@ jobs:
           REDIS_HOST: redis
           REDIS_PORT: 6379
           REDIS_DB: 0
-          REDIS_URL: redis://redis:6379/0
+          REDIS_URL: redis://localhost:6379/0
