@@ -17,11 +17,11 @@ RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements/requirements.txt
 
 # Copy the application code
-COPY .docker /app/.docker
-COPY src /app/src
+COPY . /app
+COPY .docker/entrypoint.sh /app
 
 # Copy entrypoint.sh and make it executable
 
 RUN chmod +x .docker/entrypoint.sh
-
-ENTRYPOINT ["sh", "./.docker/entrypoint.sh"]
+#ENTRYPOINT ["ls"]
+ENTRYPOINT ["sh", ".docker/entrypoint.sh"]
