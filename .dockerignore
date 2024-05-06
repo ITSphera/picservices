@@ -3,7 +3,7 @@ __pycache__
 *.pyc
 *.pyo
 *.pyd
-.Python
+.Pythondo
 env
 .venv
 env.bak
@@ -11,3 +11,17 @@ env.bak
 *.webp
 *.cc
 *.*_cache
+.pytest_cache
+.github
+.ruff_cache
+.vscode
+.idea
+tests
+venv
+templates
+.pre-commit-config.yaml
+.gitignore
+.dockerignore
+.DS_Store
+LICENSE
+README.md
