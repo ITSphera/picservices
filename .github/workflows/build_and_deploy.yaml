@@ -1,10 +1,8 @@
 name: deploy picservice workflow
-
 on:
   pull_request:
     branches: ["develop"]
     types: [closed]
-
 jobs:
   tests:
     if: github.event.pull_request.merged == true
