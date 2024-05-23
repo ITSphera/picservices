@@ -48,9 +48,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements/requirements.txt
-        cache:
-          paths:
-            - ~/.cache/pip
+        cache: 'pip'
 
       - name: Start Celery worker in background
         run: |
