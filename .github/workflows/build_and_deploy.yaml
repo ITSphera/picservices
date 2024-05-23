@@ -1,8 +1,10 @@
 name: deploy picservice workflow
+
 on:
   pull_request:
     branches: ["develop"]
     types: [closed]
+
 jobs:
   tests:
     if: github.event.pull_request.merged == true
@@ -42,13 +44,19 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements/requirements.txt
-        cache: 'pip'
 
       - name: Start Celery worker in background
         run: |
