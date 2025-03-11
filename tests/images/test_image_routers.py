@@ -1,8 +1,6 @@
-import pytest
 from asyncio import sleep
 
 
-@pytest.mark.asyncio
 async def test_upload_image(async_client, image):
     """
     Test upload image
@@ -25,7 +23,6 @@ async def test_upload_image(async_client, image):
     assert response.json()["message"] == "Image processing started"
 
 
-@pytest.mark.asyncio
 async def test_upload_image_with_wrong_service(async_client, image):
     """
     Test upload image with wrong service
@@ -47,7 +44,6 @@ async def test_upload_image_with_wrong_service(async_client, image):
     assert response.json()["error"] == "Service 'wrong_service' not found"
 
 
-@pytest.mark.asyncio
 async def test_upload_image_with_wrong_target_type(async_client, image):
     """
     Test upload image with wrong target type
@@ -72,7 +68,6 @@ async def test_upload_image_with_wrong_target_type(async_client, image):
     )
 
 
-@pytest.mark.asyncio
 async def test_upload_image_with_wrong_image(async_client, not_image):
     """
     Test upload image with wrong image
@@ -97,7 +92,6 @@ async def test_upload_image_with_wrong_image(async_client, not_image):
     )
 
 
-@pytest.mark.asyncio
 async def test_get_status(async_client, image):
     """
     Test get status

@@ -2,7 +2,8 @@ from datetime import timedelta
 
 from celery import Celery
 from decouple import config
-from redis import Redis
+from redis.asyncio import Redis
+# from redis import Redis
 
 # Redis settings
 REDIS_HOST = config("REDIS_HOST", default="localhost")

@@ -1,3 +1,4 @@
+import redis.asyncio as redis
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
@@ -14,6 +15,10 @@ ORIGIN = [
 ]
 
 app = FastAPI(title="Image Processing API", version="1.0.0")
+
+redis_client = redis.Redis(
+    host="localhost", port=6379, db=0, decode_responses=True
+)
 
 # Include routers
 app.include_router(images_router, prefix="/images")

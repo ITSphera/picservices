@@ -1,7 +1,4 @@
-import pytest
-
-
-@pytest.mark.asyncio
+# @pytest.mark.asyncio
 class TestExample:
     """
     Test example

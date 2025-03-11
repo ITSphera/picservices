@@ -1,103 +1,210 @@
+import logging
 from datetime import timedelta
-from typing import Any
-from fastapi import status
+from typing import List
+from typing import Optional
+from typing import Tuple
 
-from fastapi import Request, FastAPI
-from redis import Redis
+import redis.asyncio as redis
+from fastapi import FastAPI
+from fastapi import Request
+from fastapi import status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
 
+logger = logging.getLogger(__name__)
+
+
 class LimitRequestsMiddleware(BaseHTTPMiddleware):
     """
-    Middleware for limiting requests per IP address.
+    Middleware for rate limiting
+
+    Args:
+        app (FastAPI): FastAPI-application.
+        redis_server (redis.Redis): Redis-server.
+        max_requests (int): Maximum number of requests per time window.
+        time_window (timedelta): Time window for rate limiting.
+        blacklist_duration (timedelta): Duration of IP blacklist.
+        redis_key_prefix (str, optional): Prefix for Redis keys. Defaults to "ratelimit:".
+        whitelist_paths (List[str], optional): List of paths to exclude from rate limiting. Defaults to None.
+        cache_control_header (str, optional): Cache-Control header value. Defaults to "max-age=5, public".
     """
 
     def __init__(
         self,
         app: FastAPI,
-        redis_server: Redis,
+        redis_server: redis.Redis,
         max_requests: int,
         time_window: timedelta,
         blacklist_duration: timedelta,
+        redis_key_prefix: str = "ratelimit:",
+        whitelist_paths: List[str] = None,
+        cache_control_header: str = "max-age=5, public",
     ):
         super().__init__(app)
         self.redis = redis_server
         self.max_requests = max_requests
-        self.time_window = time_window
-        self.blacklist_duration = blacklist_duration
+        self.time_window_seconds = int(time_window.total_seconds())
+        self.blacklist_duration_seconds = int(
+            blacklist_duration.total_seconds()
+        )
+        self.prefix = redis_key_prefix
+        self.whitelist_paths = whitelist_paths or []
+        self.cache_control_header = cache_control_header
 
-    async def dispatch(self, request: Request, call_next: Any) -> Any:
+        # Lua-script for incrementing request counter
+        self.lua_script = """
+        local current = redis.call('incr', KEYS[1])
+        if current == 1 then
+            redis.call('expire', KEYS[1], ARGV[1])
+        end
+        return current
         """
-        Dispatch the request.
-        :param request: Request object
-        :param call_next: Callable
-        :return: Response
-        """
-        client_ip: str = request.client.host
 
-        if await self.is_blacklisted(client_ip):
-            return JSONResponse(
-                status_code=status.HTTP_429_TO_MANY_REQUESTS,
-                content="Too many requests",
+        self.increment_script = self.redis.register_script(self.lua_script)
+
+    def _get_keys(self, client_ip: str) -> Tuple[str, str]:
+        """
+        Generates keys for Redis
+
+        Args:
+            client_ip (str): The IP address of the client.
+
+        Returns:
+            Tuple[str, str]: A tuple containing the blacklist key and request counter key.
+        """
+
+        return (
+            f"{self.prefix}bl:{client_ip}",  # blacklist key
+            f"{self.prefix}req:{client_ip}",  # request counter key
+        )
+
+    def should_process_request(self, request: Request) -> bool:
+        """
+        Checks if the request should be processed
+
+        Args:
+            request (Request): The request object.
+
+        Returns:
+            bool: True if the request should be processed, False otherwise.
+        """
+
+        path = request.url.path
+        return not any(
+            path.startswith(wpath) for wpath in self.whitelist_paths
+        )
+
+    async def check_limits(self, client_ip: str) -> Tuple[bool, Optional[int]]:
+        """
+        Checks if the client has exceeded the rate limit
+
+        Args:
+            client_ip (str): The IP address of the client.
+
+        Returns:
+            Tuple[bool, Optional[int]]: A tuple containing a boolean indicating whether the client has exceeded the rate limit and the current request count.
+        """
+
+        blacklist_key, counter_key = self._get_keys(client_ip)
+        try:
+            is_blacklisted = await self.redis.exists(blacklist_key)
+        except Exception as e:
+            logger.error(
+                "Error checking blacklist key %s: %s", blacklist_key, e
+            )
+            return True, None
+
+        if is_blacklisted:
+            return False, None
+
+        try:
+            current_count = await self.increment_script(
+                keys=[counter_key], args=[self.time_window_seconds]
             )
 
-        request_count: int = await self.get_request_count(client_ip)
+            if int(current_count) > self.max_requests:
+                await self.redis.setex(
+                    blacklist_key, self.blacklist_duration_seconds, 1
+                )
+                return False, current_count
 
-        if request_count >= self.max_requests:
-            await self.add_to_blacklist(client_ip)
-            return JSONResponse(
-                status_code=status.HTTP_429_TO_MANY_REQUESTS,
-                content="Too many requests",
+            return True, current_count
+        except Exception as e:
+            logging.exception(
+                f"Error checking rate limit for {client_ip}: {e}"
+            )
+            return True, None
+
+    async def get_client_ip(self, request: Request) -> str:
+        """
+        Returns the IP address of the client
+
+        Args:
+            request (Request): The request object.
+
+        Returns:
+            str: The IP address of the client.
+        """
+
+        forwarded = request.headers.get("X-Forwarded-For")
+        return forwarded.split(",")[0] if forwarded else request.client.host
+
+    async def dispatch(self, request: Request, call_next) -> JSONResponse:
+        """
+        Dispatches the request to the next middleware
+
+        Args:
+            request (Request): The request object.
+            call_next: The next middleware function.
+
+        Returns:
+            JSONResponse: The response object.
+        """
+
+        if not self.should_process_request(request):
+            return await call_next(request)
+
+        client_ip = await self.get_client_ip(request)
+
+        try:
+            allowed, count = await self.check_limits(client_ip)
+
+            if not allowed:
+                return JSONResponse(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    content={
+                        "error": "Too many requests",
+                        "retry_after": self.blacklist_duration_seconds,
+                    },
+                    headers={
+                        "Retry-After": str(self.blacklist_duration_seconds)
+                    },
+                )
+        except Exception as e:
+            # В случае любых ошибок в проверке лимитов просто продолжаем обработку запроса
+            # Это предотвращает падение сервиса из-за проблем с middleware
+            logging.exception(
+                f"Error checking rate limit for {client_ip}: {e}"
             )
 
-        await self.increment_request_count(client_ip)
+        response = await call_next(request)
 
-        response: Any = await call_next(request)
+        # Добавляем заголовки для кэширования на стороне клиента только если это возможно
+        try:
+            if self.cache_control_header and hasattr(response, "headers"):
+                response.headers["Cache-Control"] = self.cache_control_header
+                if count is not None:
+                    response.headers["X-RateLimit-Limit"] = str(
+                        self.max_requests
+                    )
+                    response.headers["X-RateLimit-Remaining"] = str(
+                        max(0, self.max_requests - int(count))
+                    )
+                    response.headers["X-RateLimit-Reset"] = str(
+                        self.time_window_seconds
+                    )
+        except Exception as e:
+            logger.warning("Error setting rate limit headers: %s", e)
+
         return response
-
-    async def is_blacklisted(self, client_ip: str) -> bool:
-        """
-        Check if the IP is blacklisted.
-        :param client_ip: IP address
-        :return: boolean value
-        """
-
-        return self.redis.exists(f"blacklist:{client_ip}")
-
-    async def add_to_blacklist(self, client_ip: str) -> None:
-        """
-        Add the IP address to the blacklist.
-        :param client_ip: IP address
-        :return: None
-        """
-
-        self.redis.setex(
-            f"blacklist:{client_ip}",
-            int(self.blacklist_duration.total_seconds()),
-            1,
-        )
-
-    async def get_request_count(self, client_ip: str) -> int:
-        """
-        Get the number of requests for the IP address.
-        :param client_ip: IP address
-        :return: integer value
-        """
-
-        request_count: str = self.redis.get(f"request_count:{client_ip}")
-        return int(request_count) if request_count else 0
-
-    async def increment_request_count(self, client_ip: str) -> None:
-        """
-        Increment the number of requests for the IP address.
-        :param client_ip: IP address
-        :return: None
-        """
-
-        pipeline: Redis.pipeline = self.redis.pipeline()
-        pipeline.incr(f"request_count:{client_ip}")
-        pipeline.expire(
-            f"request_count:{client_ip}", int(self.time_window.total_seconds())
-        )
-        pipeline.execute()
