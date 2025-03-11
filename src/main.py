@@ -1,15 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
-from src.images.router import router as images_router
 
-from src.config import (
-    REDIS_SERVER,
-    MAX_REQUESTS,
-    TIME_WINDOW,
-    IP_BLACKLIST_DURATION,
-)
+from src.config import IP_BLACKLIST_DURATION
+from src.config import MAX_REQUESTS
+from src.config import REDIS_SERVER
+from src.config import TIME_WINDOW
 from src.images.middlewares.limit_requests import LimitRequestsMiddleware
+from src.images.router import router as images_router
 
 ORIGIN = [
     "*",
@@ -44,7 +42,9 @@ app.add_middleware(
 async def root():
     """
     Root endpoint
+
     :return:
+        A dictionary with a message
     """
 
     return {"message": "Hello World"}

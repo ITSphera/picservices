@@ -23,5 +23,4 @@ COPY .docker/entrypoint.sh /app
 # Copy entrypoint.sh and make it executable
 
 RUN chmod +x .docker/entrypoint.sh
-#ENTRYPOINT ["ls"]
 ENTRYPOINT ["sh", ".docker/entrypoint.sh"]
