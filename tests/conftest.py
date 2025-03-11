@@ -3,10 +3,10 @@ from shutil import rmtree
 
 import pytest
 import pytest_asyncio
-from PIL import Image
 from httpx import AsyncClient
+from PIL import Image
 
-from main import app
+from src.main import app
 
 
 # create media dir before tests
