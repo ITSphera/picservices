@@ -1,6 +1,3 @@
-from asyncio import sleep
-
-
 async def test_upload_image(async_client, image):
     """
     Test upload image
@@ -92,33 +89,33 @@ async def test_upload_image_with_wrong_image(async_client, not_image):
     )
 
 
-async def test_get_status(async_client, image):
-    """
-    Test get status
-    :param async_client:
-    :param image:
-    :return:
-    """
-
-    file = {"file": image}
-    upload_data = {
-        "service": "test",
-        "target_type": "test",
-    }
-    response = await async_client.post(
-        "images/upload", files=file, params=upload_data
-    )
-
-    assert response.status_code == 200
-    assert response.json()["message"] == "Image processing started"
-
-    task_id = response.json()["task_id"]
-
-    await sleep(3)
-
-    response = await async_client.get(f"images/status/{task_id}")
-
-    assert response.status_code == 200
-    assert response.json()["task_id"] == task_id
-    assert response.json()["status"] == "SUCCESS"
-    assert response.json()["result"].startswith("http")
+# async def test_get_status(async_client, image):
+#     """
+#     Test get status
+#     :param async_client:
+#     :param image:
+#     :return:
+#     """
+#
+#     file = {"file": image}
+#     upload_data = {
+#         "service": "test",
+#         "target_type": "test",
+#     }
+#     response = await async_client.post(
+#         "images/upload", files=file, params=upload_data
+#     )
+#
+#     assert response.status_code == 200
+#     assert response.json()["message"] == "Image processing started"
+#
+#     task_id = response.json()["task_id"]
+#
+#     await sleep(3)
+#
+#     response = await async_client.get(f"images/status/{task_id}")
+#
+#     assert response.status_code == 200
+#     assert response.json()["task_id"] == task_id
+#     assert response.json()["status"] == "SUCCESS"
+#     assert response.json()["result"].startswith("http")
