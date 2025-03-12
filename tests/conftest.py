@@ -1,3 +1,4 @@
+import io
 from datetime import timedelta
 from pathlib import Path
 from shutil import rmtree
@@ -13,17 +14,41 @@ from src.images.middlewares.limit_requests import LimitRequestsMiddleware
 from src.main import app
 
 # create media dir before tests
-Path("src/media/test").mkdir(parents=True, exist_ok=True)
+Path("src/media/tmp").mkdir(parents=True, exist_ok=True)
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture
+def tmpdir():
+    """
+
+    :return:
+    """
+
+    return Path("src/media/tmp")
+
+
+@pytest.fixture
+def temp_test_dir(tmpdir):
+    """
+    Create test directory
+
+    :param tmpdir:
+    :return:
+    """
+
+    test_dir = Path(tmpdir) / "test_images"
+    test_dir.mkdir(parents=True, exist_ok=True)
+    return str(test_dir)
+
+
+@pytest.fixture
 def clean_test_catalog():
     """
     Clean all files in test catalog src/media/test
     :return:
     """
 
-    temp_dir = Path("src/media/test/")
+    temp_dir = Path("src/media/tmp/")
     yield
     for item in temp_dir.iterdir():
         if item.is_dir():
@@ -45,17 +70,53 @@ async def async_client():
         yield async_test_client
 
 
-@pytest.fixture(scope="module")
-def image():
+@pytest.fixture(scope="session")
+def create_test_image():
     """
     Create test image
     :return:
     """
 
-    image = Image.new("RGB", (100, 50))
-    image.save("src/media/test/test.png")
-    image = bytes(open("src/media/test/test.png", "rb").read())
-    yield image
+    def _create_image(width=500, height=250, color=(255, 0, 0), format="PNG"):
+        image = Image.new("RGB", (width, height), color)
+        img_byte_arr = io.BytesIO()
+        image.save(img_byte_arr, format=format)
+        return img_byte_arr.getvalue()
+
+    return _create_image
+
+
+@pytest.fixture(scope="session")
+def image(create_test_image):
+    """
+    Standard test image with size 500x250
+    :param create_test_image:
+    :return:
+    """
+
+    return create_test_image(500, 250, (255, 0, 0))
+
+
+@pytest.fixture
+def image_height_more_than_1080(create_test_image):
+    """
+    Standard test image with height more than 1080
+    :param create_test_image:
+    :return:
+    """
+
+    return create_test_image(500, 2000, (0, 255, 0))
+
+
+@pytest.fixture
+def wide_image(create_test_image):
+    """
+    Very wide image for testing BILINEAR resampling
+    :param create_test_image:
+    :return:
+    """
+
+    return create_test_image(5000, 2500, (0, 0, 255))
 
 
 @pytest.fixture(scope="session")
@@ -65,23 +126,29 @@ def not_image():
     :return:
     """
 
-    with open("src/media/test/test.txt", "w+") as my_file:
-        my_file.write("Привет, файл!")
-    not_image = bytes(open("src/media/test/test.txt", "rb").read())
-    yield not_image
+    return b"This is not an image file content"
 
 
-@pytest.fixture(scope="session")
-def image_height_more_than_1080():
+@pytest.fixture
+def corrupted_image(image):
     """
-    Create test image with height more than 1080
+    Create corrupted image
     :return:
     """
 
-    image = Image.new("RGB", (100, 2000))
-    image.save("src/media/test/test2000.png")
-    image = bytes(open("src/media/test/test2000.png", "rb").read())
-    yield image
+    corrupted = bytearray(image)
+    corrupted[20:25] = b"XXXXX"
+    return bytes(corrupted)
+
+
+@pytest.fixture
+def empty_bytes():
+    """
+    Create empty bytes
+    :return:
+    """
+
+    return b""
 
 
 @pytest.fixture
