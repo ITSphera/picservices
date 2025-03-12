@@ -56,6 +56,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
+          pip install setuptools
           pip install -r requirements/requirements.txt
 
       - name: Start Celery worker in background
