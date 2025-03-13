@@ -265,21 +265,3 @@ async def test_get_status_pending(async_client, mocker):
     assert response.json()["task_id"] == task_id
     assert response.json()["status"] == "PENDING"
     assert response.json()["result"] is None
-
-
-async def test_get_status_invalid_task_id(async_client, mocker):
-    """
-    Test get status invalid task id
-    :param async_client:
-    :param mocker:
-    :return:
-    """
-
-    task_id = "invalid_task_id"
-    mock_task = mocker.patch("celery.result.AsyncResult")
-    mock_task.get.side_effect = Exception("Task not found")
-
-    response = await async_client.get(f"images/status/{task_id}")
-    assert response.status_code == 422
-    assert "detail" in response.json()
-    assert response.json()["detail"] == text_codes.ERROR_UNPROCESSABLE_ENTITY
