@@ -1,20 +1,29 @@
 import asyncio
-from io import BytesIO
-from pathlib import Path
-from typing import Any, Union
+import logging
+from typing import Any
+from typing import Dict
+from typing import Union
 
-from PIL import Image
 from celery.result import AsyncResult
 from fastapi import APIRouter
-from fastapi import File, UploadFile, Depends
+from fastapi import Depends
+from fastapi import File
+from fastapi import HTTPException
+from fastapi import status
+from fastapi import UploadFile
+from pydantic import ValidationError
 from starlette.responses import JSONResponse
-from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 
-from src.config import SERVICES, celery, BASE_URL
-from src.tasks import process_image
 from .models import UploadData
+from .utils import get_file_url
+from .validators import validate_image
+from src.base import text_codes
+from src.config import celery
+from src.tasks import process_image
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 
 @router.post("/upload")
@@ -23,64 +32,83 @@ async def upload_image(
 ) -> Union[dict, Any]:
     """
     Upload image to the server
+
     Args:
         upload_data (UploadData): The service and target type for image processing.
         file (UploadFile): The image file to be uploaded.
     Returns:
         dict: A dictionary containing the task ID and message.
     """
-    service = upload_data.service
-    target_type = upload_data.target_type
 
-    if service not in SERVICES:
-        return JSONResponse(
-            status_code=HTTP_422_UNPROCESSABLE_ENTITY,
-            content={"error": f"Service '{service}' not found"},
+    try:
+        target_info = upload_data.target_info
+        file_content = await file.read()
+
+        await validate_image(file_content)
+
+        task = process_image.delay(
+            file_content, target_info["dir"], target_info["width"]
         )
-    if target_type not in SERVICES[service]:
+
+        return {
+            "task_id": task.id,
+            "message": text_codes.IMAGE_PROCESSING_STARTED,
+        }
+
+    except ValidationError as e:
+        # Обработка ошибок валидации из Pydantic
+        logger.error("Error processing image: %s", e, exc_info=True)
         return JSONResponse(
-            status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={"error": str(e)},
+        )
+    except HTTPException as e:
+        # Переброс HTTP исключений
+        logger.error("Error processing image: %s", e, exc_info=True)
+        return JSONResponse(
+            status_code=e.status_code, content={"error": e.detail}
+        )
+    except Exception as e:
+        # Обработка неожиданных ошибок
+        logger.error("Error processing image: %s", e, exc_info=True)
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={
-                "error": f"Target type '{target_type}' not found for service '{service}'"
+                "error": f"{text_codes.ERROR_UNPROCESSABLE_ENTITY}: {str(e)}"
             },
         )
 
-    file: bytes = await file.read()
-    target_dir: str = SERVICES[service][target_type]["dir"]
-    width: int = SERVICES[service][target_type]["width"]
 
-    try:
-        with Image.open(BytesIO(file)) as _:
-            task: asyncio.Task = process_image.delay(file, target_dir, width)
-    except Exception:
-        return JSONResponse(
-            status_code=HTTP_422_UNPROCESSABLE_ENTITY,
-            content={"error": "Error processing image: File is not an image"},
-        )
-
-    return {"task_id": task.id, "message": "Image processing started"}
-
-
-@router.get("/status/{task_id}")
+@router.get("/status/{task_id}", response_model=Dict[str, Any])
 async def get_status(task_id: str) -> dict:
     """
-    Get status of a task
+    Get status of image processing
 
     Args:
-        task_id (str): The ID of the task.
+        task_id (str): The task ID of the image processing task.
 
     Returns:
-        dict: A dictionary containing the status of the task.
+        dict: A dictionary containing the task ID, status, and result URL.
     """
 
-    task: AsyncResult = AsyncResult(task_id, app=celery)
+    try:
+        task = AsyncResult(task_id, app=celery)
+        file_url = None
 
-    file_url = None
+        # Если задача выполнена успешно, извлекаем результат в отдельном потоке
+        if task.state == "SUCCESS":
+            # Оборачивание блокирующего вызова в asyncio.to_thread
+            result = await asyncio.to_thread(task.get)
 
-    if task.state == "SUCCESS":
-        result = task.get()
-        if result:
-            file_path = Path(result).relative_to("src/media/")
-            file_url = f"{BASE_URL}/media/{file_path}"
+            if result:
+                file_url = get_file_url(result)
 
-    return {"task_id": task_id, "status": task.state, "result": file_url}
+        return {"task_id": task_id, "status": task.state, "result": file_url}
+    except Exception as e:
+        logger.error(
+            "Error getting status for task %s: %s", task_id, e, exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=text_codes.ERROR_UNPROCESSABLE_ENTITY,
+        )

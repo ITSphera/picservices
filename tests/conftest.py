@@ -10,11 +10,9 @@ import pytest_asyncio
 from httpx import AsyncClient
 from PIL import Image
 
+from src.images import models
 from src.images.middlewares.limit_requests import LimitRequestsMiddleware
 from src.main import app
-
-# create media dir before tests
-Path("src/media/tmp").mkdir(parents=True, exist_ok=True)
 
 
 @pytest.fixture
@@ -97,6 +95,17 @@ def image(create_test_image):
     return create_test_image(500, 250, (255, 0, 0))
 
 
+@pytest.fixture(scope="session")
+def image_width_small(create_test_image):
+    """
+    Standard test image with width 1
+    :param create_test_image:
+    :return:
+    """
+
+    return create_test_image(1, 1, (255, 0, 0))
+
+
 @pytest.fixture
 def image_height_more_than_1080(create_test_image):
     """
@@ -151,7 +160,7 @@ def empty_bytes():
     return b""
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def redis_mock():
     """
     Fixture for mock redis
@@ -221,3 +230,18 @@ def call_next_mock(mock_response):
         return mock_response
 
     return _call_next
+
+
+@pytest.fixture(autouse=True)
+def override_services(monkeypatch):
+    test_services = {
+        "svz": {
+            "avatar": {"dir": "svz/avatars", "width": 200},
+            "recipe": {"dir": "svz/recipes", "width": 768},
+        },
+        "test": {
+            "test": {"dir": "test", "width": 200},
+        },
+    }
+    # Переопределяем глобальную переменную SERVICES в модуле src.models
+    monkeypatch.setattr(models, "SERVICES", test_services)

@@ -1,6 +1,9 @@
 import redis.asyncio as redis
 from fastapi import FastAPI
+from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 from starlette.staticfiles import StaticFiles
 
 from src.config import IP_BLACKLIST_DURATION
@@ -25,6 +28,21 @@ app.include_router(images_router, prefix="/images")
 
 # Mount media files
 app.mount("/media", StaticFiles(directory="src/media"), name="media")
+
+
+# Add exception handler
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(request: Request, exc: ValidationError):
+    errors = [
+        {
+            "loc": error["loc"],
+            "msg": str(error["msg"]),  # Преобразуем msg в строку
+            "type": error["type"],
+        }
+        for error in exc.errors()
+    ]
+    return JSONResponse(status_code=422, content={"detail": errors})
+
 
 # Add middleware
 app.add_middleware(
