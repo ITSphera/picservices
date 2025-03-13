@@ -3,7 +3,7 @@ from typing import Any
 from typing import Dict
 
 from pydantic import BaseModel
-from pydantic import model_validator
+from pydantic import field_validator
 
 from src.config import SERVICES
 
@@ -20,33 +20,22 @@ class UploadData(BaseModel):
     service: str
     target_type: str
 
-    @model_validator(mode="before")
+    @field_validator("service")
     @classmethod
-    def validate_service_and_target(
-        cls, data: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """
-        Validate the service and target type fields
+    def validate_service(cls, v: str):
+        if v not in SERVICES:
+            raise ValueError(f"Service '{v}' not found")
+        return v
 
-        Args:
-            data: The data to validate.
-
-        Returns:
-            The validated data.
-
-        Raises:
-            ValueError: If the service or target type is not found.
-        """
-
-        service = data.get("service")
-        target_type = data.get("target_type")
-        if service not in SERVICES:
-            raise ValueError(f"Service '{service}' not found")
-        if target_type not in SERVICES[service]:
+    @field_validator("target_type")
+    @classmethod
+    def validate_target_type(cls, v: str, info):
+        service = info.data.get("service")
+        if service and v not in SERVICES[service]:
             raise ValueError(
-                f"Target type '{target_type}' not found for service '{service}'"
+                f"Target type '{v}' not found for service '{service}'"
             )
-        return data
+        return v
 
     @cached_property
     def target_info(self) -> Dict[str, Any]:
@@ -56,7 +45,6 @@ class UploadData(BaseModel):
         Returns:
             A dictionary containing the directory and width of the target.
         """
-
         return {
             "dir": SERVICES[self.service][self.target_type]["dir"],
             "width": SERVICES[self.service][self.target_type]["width"],
