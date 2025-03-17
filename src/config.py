@@ -3,24 +3,14 @@ from datetime import timedelta
 from celery import Celery
 from decouple import config
 from redis.asyncio import Redis
-# from redis import Redis
 
 # Redis settings
-REDIS_HOST = config("REDIS_HOST", default="localhost")
-REDIS_PORT = config("REDIS_PORT", default=6379, cast=int)
-REDIS_DB = config("REDIS_DB", default=0, cast=int)
-REDIS_SERVER = Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+REDIS_URL = config("REDIS_URL", default="redis://localhost:6379/0")
+redis_client = Redis.from_url(REDIS_URL, decode_responses=True)
 
 # Celery settings
-celery = Celery(
-    "tasks",
-    backend=config("REDIS_URL", default="redis://localhost:6379/0"),
-    broker=config("REDIS_URL", default="redis://localhost:6379/0"),
-)
-
+celery = Celery("tasks", broker=REDIS_URL, backend=REDIS_URL)
 celery.conf.update(
-    broker_url=config("REDIS_URL", default="redis://localhost:6379/0"),
-    result_backend=config("REDIS_URL", default="redis://localhost:6379/0"),
     task_track_started=True,
     task_serializer="json",
     result_serializer="json",
@@ -31,16 +21,26 @@ celery.conf.update(
     broker_connection_retry_on_startup=True,
 )
 
-# Image settings
-SERVICES = {
+
+# Настройки изображений
+class ImageServiceConfig:
+    dir: str
+    width: int
+
+
+SERVICES: dict[str, dict[str, ImageServiceConfig]] = {
     "SVZ": {
         "avatar": {
             "dir": "svz/avatars",
             "width": config("SVZ_AVATAR_WIDTH", default=200, cast=int),
         },
-        "recipe": {
-            "dir": "svz/recipes",
+        "recipe_preview": {
+            "dir": "svz/recipes/previews",
             "width": config("SVZ_RECIPE_WIDTH", default=768, cast=int),
+        },
+        "recipe_images": {
+            "dir": "svz/recipes/images",
+            "width": config("SVZ_POST_IMAGE_WIDTH", default=768, cast=int),
         },
     },
     "test": {
@@ -50,14 +50,16 @@ SERVICES = {
         },
     },
 }
+
 IMAGE_QUALITY = config("IMAGE_QUALITY", default=100, cast=int)
 MAX_IMAGE_HEIGHT = config("MAX_IMAGE_HEIGHT", default=1080, cast=int)
 
+# Базовый URL
 BASE_URL = config("BASE_URL", default="http://localhost:8000")
 
-# Limit requests for API
+# Ограничение запросов API
 MAX_REQUESTS = config("MAX_REQUESTS", default=5, cast=int)
 TIME_WINDOW = timedelta(seconds=config("TIME_WINDOW", default=3, cast=int))
 IP_BLACKLIST_DURATION = timedelta(
-    minutes=config("IP_BLACKLIST_DURATION", default=60 * 24, cast=int)
+    minutes=config("IP_BLACKLIST_DURATION", default=1440, cast=int)
 )
