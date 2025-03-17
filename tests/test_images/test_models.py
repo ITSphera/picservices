@@ -12,7 +12,7 @@ def test_valid_upload_data():
     :return:
     """
 
-    data = {"service": "svz", "target_type": "avatar"}
+    data = {"service": "svz", "target_type": "avatar", "username": "test"}
     upload_data = UploadData(**data)
     target_info = upload_data.target_info
     expected_info = {"dir": "svz/avatars", "width": 200}
@@ -69,5 +69,15 @@ def test_wrong_field_types():
     Ожидается, что будет выброшено исключение ValidationError, если поля не являются строками.
     """
     data = {"service": 123, "target_type": 456}
+    with pytest.raises(ValidationError):
+        UploadData(**data)
+
+
+def test_missing_username():
+    """
+    Тестирование отсутствия обязательного поля 'username'.
+    Ожидается, что будет выброшено исключение ValidationError.
+    """
+    data = {"service": "svz", "target_type": "avatar"}
     with pytest.raises(ValidationError):
         UploadData(**data)

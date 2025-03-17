@@ -15,10 +15,12 @@ class UploadData(BaseModel):
     Args:
         service: The service for image processing.
         target_type: The target type for image processing.
+        username: The username of the user who uploaded the image.
     """
 
     service: str
     target_type: str
+    username: str
 
     @field_validator("service")
     @classmethod
@@ -37,6 +39,13 @@ class UploadData(BaseModel):
             )
         return v
 
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, v: str):
+        if not v:
+            raise ValueError("Username is required")
+        return v
+
     @cached_property
     def target_info(self) -> Dict[str, Any]:
         """
@@ -45,7 +54,8 @@ class UploadData(BaseModel):
         Returns:
             A dictionary containing the directory and width of the target.
         """
-        return {
-            "dir": SERVICES[self.service][self.target_type]["dir"],
-            "width": SERVICES[self.service][self.target_type]["width"],
-        }
+        base_info = SERVICES[self.service][self.target_type]
+        directory_template = base_info["dir"]
+        username = self.username if self.username else "default"
+        directory = directory_template.format(username=username)
+        return {"dir": directory, "width": base_info["width"]}
