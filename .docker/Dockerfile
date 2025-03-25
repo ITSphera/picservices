@@ -1,26 +1,45 @@
-FROM python:3.12-slim
+# Stage 1: Builder
+FROM --platform=linux/amd64 python:3.12.1-slim AS builder
 
-# Set working directory in one step
 WORKDIR /app
 
-# Install necessary system dependencies
-RUN apt-get update -y && \
-    apt-get install -y libpq-dev gcc netcat-traditional && \
+# Install build deps
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libpq-dev \
+    gcc \
+    netcat-openbsd && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first to leverage Docker cache
-COPY requirements /app/requirements
-
-# Install Python dependencies
+# Install Python deps
+COPY requirements/requirements.txt .
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements/requirements.txt
+    pip install --no-cache-dir -r requirements.txt
 
-# Copy the application code
-COPY . /app
-COPY .docker/entrypoint.sh /app
+# Stage 2: Final image
+FROM --platform=linux/amd64 python:3.12.1-slim
 
-# Copy entrypoint.sh and make it executable
+WORKDIR /app
 
-RUN chmod +x .docker/entrypoint.sh
-ENTRYPOINT ["sh", ".docker/entrypoint.sh"]
+# Install runtime dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libpq-dev \
+    netcat-openbsd && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy Python packages from builder
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+
+# Copy application files
+# COPY .docker/entrypoint.sh .
+# RUN chmod +x entrypoint.sh
+
+COPY . .
+
+# ENV PYTHONPATH=/app
+# WORKDIR /app
+# ENTRYPOINT ["python", "-m", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-config log/logconfig.ini"]
+ENTRYPOINT ["python", "-c", "import sys; sys.path.append('.'); from uvicorn import run; run('src.main:app', host='0.0.0.0', port=8000)"]
