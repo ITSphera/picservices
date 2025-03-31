@@ -1,21 +1,4 @@
 services:
-#  db:
-#    image: postgres:16-alpine3.18
-#    restart: always
-#    environment:
-#      POSTGRES_USER: postgres
-#      POSTGRES_PASSWORD: postgres
-#      POSTGRES_DB: picservice
-#    ports:
-#      - "5432:5432"
-#    volumes:
-#      - db_data:/var/lib/postgresql/data
-#    healthcheck:
-#      test: ["CMD", "pg_isready", "-U", "postgres"]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 5
-
   redis:
     image: redis:alpine
     restart: always
@@ -28,16 +11,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    depends_on:
-      db:
-        condition: service_healthy
+    networks:
+      - backend
 
   image-service:
     container_name: image-service
     build:
       context: ..
       dockerfile: .docker/Dockerfile
-#    command: bash -c "cd .. && ls"
     restart: always
     ports:
       - "8000:8000"
@@ -47,10 +28,29 @@ services:
       redis:
         condition: service_healthy
     volumes:
-#      - ..:/app
+      - media:/src/media
       - log_volume:/app/log
+    networks:
+      - backend
+
+  celery-worker:
+    container_name: celery-worker
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile #use the same dockerfile as the web service.
+    restart: always
+    command: celery -A src.tasks worker --loglevel=info
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
 
 volumes:
   db_data:
   redis_data:
   log_volume:
+  media:
+
+networks:
+  backend:

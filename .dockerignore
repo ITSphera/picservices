@@ -1,27 +1,50 @@
-.git
-__pycache__
+# Python Specific
 *.pyc
-*.pyo
-*.pyd
-.Pythondo
-env
-.venv
-env.bak
-.venv.bak
-*.webp
-*.cc
-*.*_cache
-.pytest_cache
-.github
-.ruff_cache
-.vscode
-.idea
-tests
-venv
-templates
-.pre-commit-config.yaml
-.gitignore
+__pycache__
+*.egg-info
+.venv/
+venv/
+
+# Docker Related
 .dockerignore
+Dockerfile
+docker-compose.yml
+.docker/
+
+# Environment Variables
+.env
+*.env
+.dev.env
+
+# Logs and Temporary Files
+*.log
+tmp/
+temp/
+logs/
+
+# Database Data (if not using volumes)
+db_data/
+redis_data/
+
+# OS Specific
 .DS_Store
-LICENSE
-README.md
+Thumbs.db
+
+# Node.js (if applicable)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Git
+.git/
+
+# IDE Specific
+.idea/
+*.swp
+*.swo
+*.vscode/
+
+# Other
+*.sqlite
+*.sqlite3
