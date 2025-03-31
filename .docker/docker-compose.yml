@@ -1,24 +1,4 @@
-version: "3.8"
 services:
-  db:
-    image: postgres:16-alpine3.18
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: picservice
-    ports:
-      - "5432:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - backend
-
   redis:
     image: redis:alpine
     restart: always
@@ -31,9 +11,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    depends_on:
-      db:
-        condition: service_healthy
     networks:
       - backend
 
@@ -51,6 +28,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
+      - media:/src/media
       - log_volume:/app/log
     networks:
       - backend
@@ -72,6 +50,7 @@ volumes:
   db_data:
   redis_data:
   log_volume:
+  media:
 
 networks:
   backend:
